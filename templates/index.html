@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>OTP Automation Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-6">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-6">🔐 OTP Automation Tool</h1>
+
+        <!-- API Key -->
+        <div class="bg-white p-4 rounded shadow mb-6">
+            <h2 class="font-semibold mb-2">Enter Your API Key</h2>
+            <input type="password" id="api_key" class="border p-2 w-full rounded" placeholder="Enter API Key">
+        </div>
+
+        <!-- Services Section -->
+        <div class="bg-white p-4 rounded shadow mb-6">
+            <h2 class="font-semibold mb-2">1. Load Services</h2>
+            <button onclick="loadServices()" 
+                    class="bg-blue-500 text-white px-4 py-2 rounded">Load Services</button>
+            <div id="services_result" class="mt-3"></div>
+        </div>
+
+        <div class="bg-white p-4 rounded shadow">
+            <h2 class="font-semibold mb-2">2. Get Number</h2>
+            <input type="text" id="service_id" placeholder="Service ID" class="border p-2 w-full rounded mb-2">
+            <button onclick="getNumber()" 
+                    class="bg-green-500 text-white px-4 py-2 rounded w-full">Get New Number</button>
+        </div>
+    </div>
+
+    <script>
+        async function loadServices() {
+            const apiKey = document.getElementById('api_key').value;
+            if (!apiKey) {
+                alert("Please enter API Key");
+                return;
+            }
+            const res = await fetch('/load_services', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: new URLSearchParams({api_key: apiKey, country: 'in'})
+            });
+            const data = await res.json();
+            document.getElementById('services_result').innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+        }
+
+        async function getNumber() {
+            const apiKey = document.getElementById('api_key').value;
+            const service = document.getElementById('service_id').value;
+            if (!apiKey || !service) {
+                alert("Please enter API Key and Service ID");
+                return;
+            }
+            const res = await fetch('/get_number', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: new URLSearchParams({api_key: apiKey, service: service})
+            });
+            const data = await res.json();
+            alert(JSON.stringify(data));
+        }
+    </script>
+</body>
+</html>
