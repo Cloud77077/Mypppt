@@ -94,8 +94,13 @@ async def get_number(api_key: str = Form(...), service: str = Form(...)):
 
 @app.post("/check_otp")
 async def check_otp(activation_id: str = Form(...)):
-    # This is a placeholder. Full OTP checking logic can be added later.
-    return {"status": "success", "message": "OTP checking feature will be improved soon"}
+    # Placeholder - can be improved later
+    return {"status": "success", "message": "OTP checking will be improved"}
+
+@app.post("/cancel_number")
+async def cancel_number(activation_id: str = Form(...)):
+    # Placeholder - can be improved later
+    return {"status": "success", "message": "Cancel will be improved"}
 
 if __name__ == "__main__":
     import uvicorn
