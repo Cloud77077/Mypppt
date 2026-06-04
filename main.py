@@ -6,16 +6,13 @@ from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
 from datetime import datetime, timedelta
 import base64
-import io
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
-# In-memory storage for purchased numbers
 numbers_history = []
 
-def get_rebtel_screenshot_and_operator(phone):
-    """Returns operator name and base64 screenshot of Rebtel page"""
+def get_rebtel_data(phone):
     try:
         clean = phone.replace("+", "").replace(" ", "").strip()
         if clean.startswith("91") and len(clean) > 10:
@@ -29,11 +26,10 @@ def get_rebtel_screenshot_and_operator(phone):
             page.goto(url, timeout=20000)
             page.wait_for_timeout(4000)
 
-            # Take screenshot
-            screenshot_bytes = page.screenshot(full_page=False)
-            screenshot_base64 = base64.b64encode(screenshot_bytes).decode('utf-8')
+            # Screenshot
+            screenshot = page.screenshot()
+            screenshot_base64 = base64.b64encode(screenshot).decode('utf-8')
 
-            # Get operator from text
             content = page.content()
             browser.close()
 
@@ -51,16 +47,9 @@ def get_rebtel_screenshot_and_operator(phone):
         else:
             operator = "Unknown"
 
-        return {
-            "operator": operator,
-            "screenshot": screenshot_base64
-        }
-    except Exception as e:
-        print(f"Rebtel Error: {e}")
-        return {
-            "operator": "Unknown",
-            "screenshot": None
-        }
+        return {"operator": operator, "screenshot": screenshot_base64}
+    except:
+        return {"operator": "Unknown", "screenshot": None}
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
@@ -79,16 +68,14 @@ async def get_number(api_key: str = Form(...), service: str = Form(...)):
         if response.startswith("ACCESS_NUMBER"):
             parts = response.split(":")
             phone = parts[2]
-
-            # Get Rebtel info + screenshot
-            rebtel_data = get_rebtel_screenshot_and_operator(phone)
+            rebtel = get_rebtel_data(phone)
 
             number_data = {
                 "phone": phone,
                 "service": service,
                 "activation_id": parts[1],
-                "operator": rebtel_data["operator"],
-                "screenshot": rebtel_data["screenshot"],
+                "operator": rebtel["operator"],
+                "screenshot": rebtel["screenshot"],
                 "status": "Waiting",
                 "otp": None,
                 "created_at": datetime.now(),
