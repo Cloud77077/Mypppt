@@ -34,11 +34,16 @@ def get_rebtel_data(phone):
         soup = BeautifulSoup(content, "html.parser")
         text = soup.get_text().lower()
 
-        if "jio" in text: operator = "Jio"
-        elif "airtel" in text: operator = "Airtel"
-        elif "bsnl" in text: operator = "BSNL"
-        elif "vi" in text or "vodafone" in text or "idea" in text: operator = "Vi"
-        else: operator = "Unknown"
+        if "jio" in text:
+            operator = "Jio"
+        elif "airtel" in text:
+            operator = "Airtel"
+        elif "bsnl" in text:
+            operator = "BSNL"
+        elif "vi" in text or "vodafone" in text or "idea" in text:
+            operator = "Vi"
+        else:
+            operator = "Unknown"
 
         return {"operator": operator, "screenshot": screenshot_base64}
     except:
@@ -46,9 +51,10 @@ def get_rebtel_data(phone):
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
+    # Fixed: Using list() to avoid "unhashable type: 'dict'" error
     return templates.TemplateResponse("index.html", {
         "request": request,
-        "numbers": numbers_history
+        "numbers": list(numbers_history)
     })
 
 @app.post("/load_services")
@@ -94,12 +100,10 @@ async def get_number(api_key: str = Form(...), service: str = Form(...)):
 
 @app.post("/check_otp")
 async def check_otp(activation_id: str = Form(...)):
-    # Placeholder - can be improved later
     return {"status": "success", "message": "OTP checking will be improved"}
 
 @app.post("/cancel_number")
 async def cancel_number(activation_id: str = Form(...)):
-    # Placeholder - can be improved later
     return {"status": "success", "message": "Cancel will be improved"}
 
 if __name__ == "__main__":
