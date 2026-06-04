@@ -5,14 +5,17 @@ import requests
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
 from datetime import datetime, timedelta
-import json
+import base64
+import io
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
+# In-memory storage for purchased numbers
 numbers_history = []
 
-def get_operator_rebtel(phone):
+def get_rebtel_screenshot_and_operator(phone):
+    """Returns operator name and base64 screenshot of Rebtel page"""
     try:
         clean = phone.replace("+", "").replace(" ", "").strip()
         if clean.startswith("91") and len(clean) > 10:
@@ -23,21 +26,41 @@ def get_operator_rebtel(phone):
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
             page = browser.new_page()
-            page.goto(url, timeout=15000)
-            page.wait_for_timeout(3000)
+            page.goto(url, timeout=20000)
+            page.wait_for_timeout(4000)
+
+            # Take screenshot
+            screenshot_bytes = page.screenshot(full_page=False)
+            screenshot_base64 = base64.b64encode(screenshot_bytes).decode('utf-8')
+
+            # Get operator from text
             content = page.content()
             browser.close()
 
         soup = BeautifulSoup(content, "html.parser")
         text = soup.get_text().lower()
 
-        if "jio" in text: return "Jio"
-        if "airtel" in text: return "Airtel"
-        if "bsnl" in text: return "BSNL"
-        if "vi" in text or "vodafone" in text or "idea" in text: return "Vi"
-        return "Unknown"
-    except:
-        return "Error"
+        if "jio" in text:
+            operator = "Jio"
+        elif "airtel" in text:
+            operator = "Airtel"
+        elif "bsnl" in text:
+            operator = "BSNL"
+        elif "vi" in text or "vodafone" in text or "idea" in text:
+            operator = "Vi"
+        else:
+            operator = "Unknown"
+
+        return {
+            "operator": operator,
+            "screenshot": screenshot_base64
+        }
+    except Exception as e:
+        print(f"Rebtel Error: {e}")
+        return {
+            "operator": "Unknown",
+            "screenshot": None
+        }
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
@@ -56,17 +79,20 @@ async def get_number(api_key: str = Form(...), service: str = Form(...)):
         if response.startswith("ACCESS_NUMBER"):
             parts = response.split(":")
             phone = parts[2]
-            operator = get_operator_rebtel(phone)
+
+            # Get Rebtel info + screenshot
+            rebtel_data = get_rebtel_screenshot_and_operator(phone)
 
             number_data = {
                 "phone": phone,
                 "service": service,
                 "activation_id": parts[1],
-                "operator": operator,
+                "operator": rebtel_data["operator"],
+                "screenshot": rebtel_data["screenshot"],
                 "status": "Waiting",
                 "otp": None,
                 "created_at": datetime.now(),
-                "cancel_time": datetime.now() + timedelta(minutes=2),
+                "cancel_time": datetime.now() + timedelta(minutes=1),
                 "auto_cancel_time": datetime.now() + timedelta(minutes=5)
             }
             numbers_history.append(number_data)
