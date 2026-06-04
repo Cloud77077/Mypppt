@@ -1,36 +1,97 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>OTP Tool</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OTP Automation Tool</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 p-6">
-    <div class="max-w-3xl mx-auto">
-        <h1 class="text-3xl font-bold mb-6">OTP Automation Tool</h1>
-
-        <!-- API Key -->
-        <div class="bg-white p-4 rounded shadow mb-6">
-            <input type="password" id="api_key" placeholder="Enter API Key" class="border p-2 w-full rounded">
+<body class="bg-gray-100">
+    <div class="max-w-5xl mx-auto p-6">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800">🔐 OTP Automation Tool</h1>
         </div>
 
-        <!-- Get Number -->
-        <div class="bg-white p-4 rounded shadow mb-6">
-            <h2 class="font-semibold mb-2">Get Number</h2>
-            <input type="text" id="service_id" placeholder="Service ID" class="border p-2 w-full rounded mb-2">
-            <button onclick="getNumber()" class="bg-green-500 text-white px-4 py-2 rounded w-full">Get New Number</button>
+        <!-- API Key Section -->
+        <div class="bg-white rounded-xl shadow p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4">API Key</h2>
+            <input type="password" id="api_key" 
+                   class="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   placeholder="Enter your OTP Doctor API Key">
         </div>
 
-        <!-- Numbers List -->
-        <div class="bg-white p-4 rounded shadow">
-            <h2 class="font-semibold mb-4">Your Numbers</h2>
-            {% for num in numbers %}
-            <div class="border p-3 rounded mb-3">
-                <p><strong>Phone:</strong> {{ num.phone }}</p>
-                <p><strong>Operator:</strong> {{ num.operator }}</p>
-                <p><strong>Status:</strong> {{ num.status }}</p>
-                <button class="bg-red-500 text-white px-3 py-1 rounded mt-2">Cancel</button>
+        <!-- Get Number Section -->
+        <div class="bg-white rounded-xl shadow p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4">Get Number</h2>
+            
+            <div class="flex gap-4">
+                <input type="text" id="service_id" 
+                       class="flex-1 border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="Enter Service ID (e.g. 101)">
+                
+                <button onclick="getNumber()" 
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-medium transition">
+                    Get New Number
+                </button>
             </div>
-            {% endfor %}
+        </div>
+
+        <!-- Numbers History -->
+        <div class="bg-white rounded-xl shadow p-6">
+            <h2 class="text-xl font-semibold mb-6">Your Numbers</h2>
+            
+            {% if numbers %}
+                <div class="space-y-6">
+                    {% for num in numbers %}
+                    <div class="border border-gray-200 rounded-xl p-5">
+                        <div class="flex justify-between items-start">
+                            <!-- Left Side: Number Info -->
+                            <div class="flex-1">
+                                <div class="flex items-center gap-3 mb-2">
+                                    <span class="font-semibold text-lg">{{ num.phone }}</span>
+                                    <span class="px-3 py-1 text-sm rounded-full 
+                                        {% if num.operator == 'Jio' %}bg-blue-100 text-blue-700
+                                        {% elif num.operator == 'Airtel' %}bg-red-100 text-red-700
+                                        {% elif num.operator == 'BSNL' %}bg-green-100 text-green-700
+                                        {% else %}bg-gray-100 text-gray-700{% endif %}">
+                                        {{ num.operator }}
+                                    </span>
+                                </div>
+                                
+                                <p class="text-sm text-gray-500 mb-1">Service: {{ num.service }}</p>
+                                <p class="text-sm text-gray-500">Status: <span class="font-medium">{{ num.status }}</span></p>
+                            </div>
+
+                            <!-- Right Side: Rebtel Preview -->
+                            {% if num.screenshot %}
+                            <div class="w-48 ml-4">
+                                <p class="text-xs text-gray-500 mb-1">Rebtel Preview</p>
+                                <img src="data:image/png;base64,{{ num.screenshot }}" 
+                                     class="w-full rounded-lg border shadow-sm cursor-pointer hover:opacity-90"
+                                     onclick="window.open('https://www.rebtel.com/en/recharge/india/products?msisdn=+91{{ num.phone.replace('+', '').replace(' ', '')[2:] if num.phone.startswith('+91') else num.phone }}', '_blank')">
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="mt-4 flex gap-3">
+                            <button onclick="checkOTP('{{ num.activation_id }}', {{ loop.index0 }})" 
+                                    class="flex-1 bg-gray-800 hover:bg-black text-white py-2 rounded-lg text-sm font-medium transition">
+                                Check OTP
+                            </button>
+                            
+                            <button onclick="cancelNumber('{{ num.activation_id }}', {{ loop.index0 }})" 
+                                    class="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg text-sm font-medium transition">
+                                Cancel Number
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-gray-500 text-center py-8">No numbers purchased yet.</p>
+            {% endif %}
         </div>
     </div>
 
@@ -38,14 +99,33 @@
         async function getNumber() {
             const apiKey = document.getElementById('api_key').value;
             const service = document.getElementById('service_id').value;
-            const res = await fetch('/get_number', {
+
+            if (!apiKey || !service) {
+                alert("Please enter API Key and Service ID");
+                return;
+            }
+
+            const response = await fetch('/get_number', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: new URLSearchParams({api_key: apiKey, service: service})
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({
+                    api_key: apiKey,
+                    service: service
+                })
             });
-            const data = await res.json();
-            alert(JSON.stringify(data));
+
+            const result = await response.json();
+            alert(JSON.stringify(result));
             location.reload();
+        }
+
+        async function checkOTP(activationId, index) {
+            // We will add full OTP checking logic later
+            alert("OTP checking feature will be added in next update");
+        }
+
+        async function cancelNumber(activationId, index) {
+            alert("Cancel feature will be added in next update");
         }
     </script>
 </body>
