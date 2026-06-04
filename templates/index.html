@@ -12,8 +12,7 @@
 
         <!-- API Key -->
         <div class="bg-zinc-900 p-5 rounded-2xl mb-8">
-            <input type="password" id="api_key" placeholder="Enter API Key" 
-                   class="w-full bg-zinc-950 border border-zinc-700 p-3 rounded-xl">
+            <input type="password" id="api_key" placeholder="Enter API Key" class="w-full bg-zinc-950 border border-zinc-700 p-3 rounded-xl">
         </div>
 
         <!-- Services + Get Number -->
@@ -22,23 +21,18 @@
             <!-- Load Services -->
             <div class="bg-zinc-900 p-5 rounded-2xl">
                 <h2 class="font-semibold mb-3">1. Services</h2>
-                <button onclick="loadServices()" 
-                        class="w-full bg-zinc-800 hover:bg-zinc-700 py-2.5 rounded-xl mb-3">Load Services</button>
-                <input type="text" id="search_service" placeholder="Search services..." 
-                       class="w-full bg-zinc-950 border border-zinc-700 p-3 rounded-xl mb-3">
+                <button onclick="loadServices()" class="w-full bg-zinc-800 py-2.5 rounded-xl mb-3">Load Services</button>
+                <input type="text" id="search" placeholder="Search services..." class="w-full bg-zinc-950 border border-zinc-700 p-3 rounded-xl mb-3" onkeyup="filterServices()">
                 <div id="services_list" class="max-h-60 overflow-auto text-sm"></div>
             </div>
 
             <!-- Get Number -->
             <div class="bg-zinc-900 p-5 rounded-2xl">
                 <h2 class="font-semibold mb-3">2. Get Number</h2>
-                <input type="text" id="service_id" placeholder="Service ID" 
-                       class="w-full bg-zinc-950 border border-zinc-700 p-3 rounded-xl mb-3">
+                <input type="text" id="service_id" placeholder="Service ID" class="w-full bg-zinc-950 border border-zinc-700 p-3 rounded-xl mb-3">
                 <div class="flex gap-3">
-                    <button onclick="getNumber()" 
-                            class="flex-1 bg-emerald-600 hover:bg-emerald-700 py-2.5 rounded-xl">Get Number</button>
-                    <button onclick="autoRetry()" 
-                            class="flex-1 bg-zinc-700 hover:bg-zinc-600 py-2.5 rounded-xl">Auto Retry</button>
+                    <button onclick="getNumber()" class="flex-1 bg-emerald-600 py-2.5 rounded-xl">Get Number</button>
+                    <button onclick="autoRetry()" class="flex-1 bg-zinc-700 py-2.5 rounded-xl">Auto Retry</button>
                 </div>
             </div>
         </div>
@@ -49,26 +43,23 @@
             
             {% for num in numbers %}
             <div class="border border-zinc-700 rounded-2xl p-5 mb-5">
-                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
+                <div class="flex flex-col md:flex-row gap-4">
+                    <div class="flex-1">
                         <p class="font-semibold text-lg">{{ num.phone }}</p>
-                        <p class="text-sm text-zinc-400">Service: {{ num.service }} | {{ num.operator }}</p>
+                        <p class="text-sm text-zinc-400">{{ num.operator }} | {{ num.status }}</p>
                     </div>
-
+                    
                     {% if num.screenshot %}
-                    <div class="w-full md:w-40">
-                        <img src="data:image/png;base64,{{ num.screenshot }}" 
-                             class="rounded-xl border border-zinc-600 cursor-pointer" 
+                    <div class="w-36">
+                        <img src="data:image/png;base64,{{ num.screenshot }}" class="rounded-xl cursor-pointer" 
                              onclick="window.open('https://www.rebtel.com/en/recharge/india/products?msisdn=+91{{ num.phone[2:] if num.phone.startswith('+91') else num.phone }}', '_blank')">
                     </div>
                     {% endif %}
                 </div>
 
-                <div class="mt-4 flex flex-wrap gap-2">
-                    <button onclick="checkOTP('{{ num.activation_id }}')" 
-                            class="flex-1 bg-zinc-800 hover:bg-zinc-700 py-2 rounded-xl text-sm">Check OTP</button>
-                    <button onclick="cancelNumber('{{ num.activation_id }}')" 
-                            class="flex-1 bg-red-600 hover:bg-red-700 py-2 rounded-xl text-sm">Cancel</button>
+                <div class="mt-4 flex gap-2">
+                    <button onclick="checkOTP('{{ num.activation_id }}')" class="flex-1 bg-zinc-800 py-2 rounded-xl text-sm">Check OTP</button>
+                    <button onclick="cancelNumber('{{ num.activation_id }}')" class="flex-1 bg-red-600 py-2 rounded-xl text-sm">Cancel</button>
                 </div>
             </div>
             {% endfor %}
@@ -79,24 +70,42 @@
         async function getNumber() {
             const apiKey = document.getElementById('api_key').value;
             const service = document.getElementById('service_id').value;
-            // Add fetch logic here (same as before)
-            alert("Get Number feature updated. Testing in progress.");
+
+            const res = await fetch('/get_number', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: new URLSearchParams({api_key: apiKey, service: service})
+            });
+            const data = await res.json();
+            alert(JSON.stringify(data));
+            location.reload();
         }
 
         async function autoRetry() {
-            alert("Auto Retry feature will be improved soon.");
+            alert("Auto Retry feature will be improved.");
         }
 
         async function loadServices() {
-            alert("Service list loading will be added soon.");
+            const apiKey = document.getElementById('api_key').value;
+            const res = await fetch('/load_services', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: new URLSearchParams({api_key: apiKey, country: 'in'})
+            });
+            const data = await res.json();
+            document.getElementById('services_list').innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+        }
+
+        function filterServices() {
+            // Basic search filter can be added here
         }
 
         function checkOTP(id) {
-            alert("OTP checking feature coming soon.");
+            alert("OTP checking will be improved soon.");
         }
 
         function cancelNumber(id) {
-            alert("Cancel feature coming soon.");
+            alert("Cancel feature will be improved soon.");
         }
     </script>
 </body>
