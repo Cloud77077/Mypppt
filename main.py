@@ -26,26 +26,19 @@ def get_rebtel_data(phone):
             page.goto(url, timeout=20000)
             page.wait_for_timeout(4000)
 
-            # Screenshot
             screenshot = page.screenshot()
             screenshot_base64 = base64.b64encode(screenshot).decode('utf-8')
-
             content = page.content()
             browser.close()
 
         soup = BeautifulSoup(content, "html.parser")
         text = soup.get_text().lower()
 
-        if "jio" in text:
-            operator = "Jio"
-        elif "airtel" in text:
-            operator = "Airtel"
-        elif "bsnl" in text:
-            operator = "BSNL"
-        elif "vi" in text or "vodafone" in text or "idea" in text:
-            operator = "Vi"
-        else:
-            operator = "Unknown"
+        if "jio" in text: operator = "Jio"
+        elif "airtel" in text: operator = "Airtel"
+        elif "bsnl" in text: operator = "BSNL"
+        elif "vi" in text or "vodafone" in text or "idea" in text: operator = "Vi"
+        else: operator = "Unknown"
 
         return {"operator": operator, "screenshot": screenshot_base64}
     except:
@@ -57,6 +50,16 @@ async def home(request: Request):
         "request": request,
         "numbers": numbers_history
     })
+
+@app.post("/load_services")
+async def load_services(api_key: str = Form(...), country: str = Form("in")):
+    try:
+        url = "https://otpdoctor.in/stubs/handler_api.php"
+        params = {"action": "getServices", "api_key": api_key, "country": country}
+        response = requests.get(url, params=params, timeout=30)
+        return {"status": "success", "data": response.text}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 @app.post("/get_number")
 async def get_number(api_key: str = Form(...), service: str = Form(...)):
@@ -88,6 +91,11 @@ async def get_number(api_key: str = Form(...), service: str = Form(...)):
             return {"status": "error", "message": response}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+@app.post("/check_otp")
+async def check_otp(activation_id: str = Form(...)):
+    # This is a placeholder. Full OTP checking logic can be added later.
+    return {"status": "success", "message": "OTP checking feature will be improved soon"}
 
 if __name__ == "__main__":
     import uvicorn
